@@ -108,12 +108,27 @@ public partial class MainWindow : Window
                 throw new InvalidDataException("The selected file could not be opened as an image.");
             }
 
-            if (monitor.IsConnected)
-            {
-                DesktopWallpaperService.Apply(monitor.Id, path);
-            }
-
             SetWallpaperPath(monitor.Id, path);
+        }
+        catch (Exception exception) when (exception is COMException or IOException or UnauthorizedAccessException
+                                         or ArgumentException or InvalidOperationException or NotSupportedException)
+        {
+            MessageBox.Show(this, $"Unable to load wallpaper for {monitor.Name}:\n{exception.Message}",
+                "ScreenMaster", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void ApplyWallpaper_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem { DataContext: MonitorInfo monitor }
+            || !monitor.IsConnected || string.IsNullOrWhiteSpace(monitor.WallpaperPath))
+        {
+            return;
+        }
+
+        try
+        {
+            DesktopWallpaperService.Apply(monitor.Id, monitor.WallpaperPath);
         }
         catch (Exception exception) when (exception is COMException or IOException or UnauthorizedAccessException
                                          or ArgumentException or InvalidOperationException or NotSupportedException)
@@ -125,7 +140,7 @@ public partial class MainWindow : Window
 
     private void ClearWallpaper_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is Button { DataContext: MonitorInfo monitor })
+        if (sender is MenuItem { DataContext: MonitorInfo monitor })
         {
             SetWallpaperPath(monitor.Id, null);
         }
@@ -133,7 +148,7 @@ public partial class MainWindow : Window
 
     private void RemoveMonitor_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is not Button { DataContext: MonitorInfo monitor })
+        if (sender is not MenuItem { DataContext: MonitorInfo monitor })
         {
             return;
         }
