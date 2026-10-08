@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../MonitorInfo.cs" Link="MonitorInfo.cs" />
+    <Compile Include="../../MonitorProfile.cs" Link="MonitorProfile.cs" />
+    <Compile Include="../../MonitorProfileSerializer.cs" Link="MonitorProfileSerializer.cs" />
+    <Compile Include="../../RegistryProfileStore.cs" Link="RegistryProfileStore.cs" />
+  </ItemGroup>
+</Project>

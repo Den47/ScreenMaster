@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "configs": [
+    {
+      "screen": {
+        "name": "Example display 1",
+        "id": "\\\\?\\DISPLAY#DEMO001#INSTANCE1#{e6f07b5f-ee97-4a90-b076-33f57bf4eaa7}",
+        "width": 2560,
+        "height": 1440,
+        "isPrimary": true,
+        "refreshRate": 144,
+        "edidManufacturerId": null,
+        "edidProductCodeId": null,
+        "manufacturer": "DEM",
+        "productCode": "0001",
+        "serialNumber": "EXAMPLE-001"
+      },
+      "wallpaper": {
+        "path": "C:\\Wallpapers\\Forest.jpg",
+        "position": "Fill"
+      }
+    },
+    {
+      "screen": {
+        "name": "Example display 2",
+        "id": "\\\\?\\DISPLAY#DEMO002#INSTANCE2#{e6f07b5f-ee97-4a90-b076-33f57bf4eaa7}",
+        "width": 1920,
+        "height": 1080,
+        "isPrimary": false,
+        "refreshRate": 60,
+        "edidManufacturerId": null,
+        "edidProductCodeId": null,
+        "manufacturer": null,
+        "productCode": null,
+        "serialNumber": null
+      },
+      "wallpaper": {
+        "path": null,
+        "position": "Fill"
+      }
+    }
+  ]
+}

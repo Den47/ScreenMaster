@@ -25,13 +25,16 @@ internal sealed record MonitorInfo(
     public string? WallpaperPath { get; init; }
 
     [JsonIgnore]
+    public bool IsConnected { get; init; } = true;
+
+    [JsonIgnore]
     public string Resolution => Width > 0 && Height > 0 ? $"{Width} × {Height}" : "Unavailable";
 
     [JsonIgnore]
-    public string PrimaryLabel => IsPrimary ? "Primary" : string.Empty;
+    public string PrimaryLabel => IsConnected && IsPrimary ? "Primary" : string.Empty;
 
     [JsonIgnore]
-    public string PrimaryMarker => IsPrimary ? "★" : string.Empty;
+    public string PrimaryMarker => IsConnected && IsPrimary ? "★" : string.Empty;
 
     [JsonIgnore]
     public string RefreshRateLabel => RefreshRate is > 0 ? $"{RefreshRate:0.##} Hz" : "Unavailable";

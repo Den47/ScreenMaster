@@ -2,7 +2,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Text.Json;
+using System.Security;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -12,17 +12,73 @@ namespace ScreenMaster;
 
 public partial class MainWindow : Window
 {
-    private readonly Dictionary<string, string> _wallpaperPaths = new(StringComparer.OrdinalIgnoreCase);
-    private static readonly JsonSerializerOptions ProfileJsonOptions = new(JsonSerializerDefaults.Web);
+    private MonitorProfile _profile = new(MonitorProfileSerializer.CurrentVersion, []);
     private string _profileJson = string.Empty;
+    private PreparedRegistryProfile? _pendingRegistryProfile;
 
     public MainWindow()
     {
         InitializeComponent();
+        LoadProfile();
         RefreshMonitors();
     }
 
-    private void Refresh_Click(object sender, RoutedEventArgs e) => RefreshMonitors();
+    private void RefreshInfo_Click(object sender, RoutedEventArgs e) => RefreshMonitors();
+
+    private void LoadProfile()
+    {
+        try
+        {
+            _profile = RegistryProfileStore.Read() ?? _profile;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or SecurityException)
+        {
+            MessageBox.Show(this, $"Unable to load saved profile:\n{exception.Message}",
+                "ScreenMaster", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void ApplySave_Click(object sender, RoutedEventArgs e)
+    {
+        if (MonitorList.ItemsSource is not IEnumerable<MonitorInfo> monitors)
+        {
+            return;
+        }
+
+        var errors = new List<string>();
+        foreach (var monitor in monitors)
+        {
+            if (!monitor.IsConnected || string.IsNullOrWhiteSpace(monitor.WallpaperPath))
+            {
+                continue;
+            }
+
+            try
+            {
+                DesktopWallpaperService.Apply(monitor.Id, monitor.WallpaperPath);
+            }
+            catch (Exception exception) when (exception is COMException or IOException or UnauthorizedAccessException
+                                             or ArgumentException or InvalidOperationException or NotSupportedException)
+            {
+                errors.Add($"Unable to set wallpaper for {monitor.Name}: {exception.Message}");
+            }
+        }
+
+        try
+        {
+            RegistryProfileStore.Save(_profile);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or SecurityException)
+        {
+            errors.Add($"Unable to save profile: {exception.Message}");
+        }
+
+        if (errors.Count > 0)
+        {
+            MessageBox.Show(this, string.Join("\n", errors),
+                "ScreenMaster", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
 
     private void WallpaperPreview_Click(object sender, RoutedEventArgs e)
     {
@@ -52,9 +108,12 @@ public partial class MainWindow : Window
                 throw new InvalidDataException("The selected file could not be opened as an image.");
             }
 
-            DesktopWallpaperService.Apply(monitor.Id, path);
-            _wallpaperPaths[monitor.Id] = path;
-            RefreshMonitors();
+            if (monitor.IsConnected)
+            {
+                DesktopWallpaperService.Apply(monitor.Id, path);
+            }
+
+            SetWallpaperPath(monitor.Id, path);
         }
         catch (Exception exception) when (exception is COMException or IOException or UnauthorizedAccessException
                                          or ArgumentException or InvalidOperationException or NotSupportedException)
@@ -64,20 +123,56 @@ public partial class MainWindow : Window
         }
     }
 
+    private void ClearWallpaper_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { DataContext: MonitorInfo monitor })
+        {
+            SetWallpaperPath(monitor.Id, null);
+        }
+    }
+
+    private void RemoveMonitor_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { DataContext: MonitorInfo monitor })
+        {
+            return;
+        }
+
+        _profile = _profile with
+        {
+            Configs = _profile.Configs.Where(config =>
+                !string.Equals(config.Screen.Id, monitor.Id, StringComparison.OrdinalIgnoreCase)).ToArray()
+        };
+        UpdateProfileView();
+    }
+
+    private void SetWallpaperPath(string monitorId, string? path)
+    {
+        _profile = _profile with
+        {
+            Configs = _profile.Configs.Select(config =>
+                string.Equals(config.Screen.Id, monitorId, StringComparison.OrdinalIgnoreCase)
+                    ? config with { Wallpaper = config.Wallpaper with { Path = path } }
+                    : config).ToArray()
+        };
+        UpdateProfileView();
+    }
+
+    private void UpdateProfileView()
+    {
+        MonitorList.ItemsSource = _profile.Configs.Select(config => config.Screen with
+            { WallpaperPath = config.Wallpaper.Path }).ToArray();
+        _pendingRegistryProfile = RegistryProfileStore.PrepareWrite(_profile);
+        _profileJson = (string)_pendingRegistryProfile.Data;
+    }
+
     private void RefreshMonitors()
     {
         try
         {
             var monitors = MonitorService.GetConnectedMonitors();
-            var configuredMonitors = monitors
-                .Select(monitor => monitor with { WallpaperPath = _wallpaperPaths.GetValueOrDefault(monitor.Id) })
-                .ToArray();
-            MonitorList.ItemsSource = configuredMonitors;
-            var configs = configuredMonitors
-                .Select(monitor => new MonitorConfig(monitor, new WallpaperConfig(monitor.WallpaperPath, "Fill")))
-                .ToArray();
-            _profileJson = JsonSerializer.Serialize(new MonitorProfile(1, configs), ProfileJsonOptions);
-            // TODO: Persist and restore Profile JSON in HKCU\Software\WallpaperRestore when profile storage is implemented.
+            _profile = MonitorProfileSerializer.Update(_profile, monitors);
+            UpdateProfileView();
             MonitorMessage.Foreground = Brushes.DimGray;
             MonitorMessage.Text = "No active monitors found.";
             MonitorMessage.Visibility = monitors.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -86,7 +181,7 @@ public partial class MainWindow : Window
         {
             MonitorList.ItemsSource = null;
             MonitorMessage.Foreground = Brushes.Firebrick;
-            MonitorMessage.Text = $"Unable to read connected monitors: {exception.Message} (Windows error {exception.NativeErrorCode}). Try Refresh.";
+            MonitorMessage.Text = $"Unable to read connected monitors: {exception.Message} (Windows error {exception.NativeErrorCode}). Try Refresh Info.";
             MonitorMessage.Visibility = Visibility.Visible;
         }
     }
