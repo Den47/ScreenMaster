@@ -14,6 +14,12 @@ internal static class DesktopWallpaperService
             throw new FileNotFoundException("The selected image no longer exists.", fullPath);
         }
 
+        if (!MonitorService.GetConnectedMonitors().Any(monitor =>
+                string.Equals(monitor.Id, monitorId, StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new InvalidOperationException("This monitor is disconnected. Refresh the monitor list.");
+        }
+
         var type = Type.GetTypeFromCLSID(new Guid("C2CF3110-460E-4FC1-B9D0-8A1C0C9CC4BD"), true)!;
         var desktop = (IDesktopWallpaper)Activator.CreateInstance(type)!;
         try
@@ -33,13 +39,6 @@ internal static class DesktopWallpaperService
             if (targetId is null)
             {
                 throw new InvalidOperationException("This monitor is no longer available. Refresh the monitor list.");
-            }
-
-            var result = desktop.GetMonitorRECT(targetId, out _);
-            Marshal.ThrowExceptionForHR(result);
-            if (result != 0)
-            {
-                throw new InvalidOperationException("This monitor is disconnected. Refresh the monitor list.");
             }
 
             desktop.GetPosition(out var previousPosition);

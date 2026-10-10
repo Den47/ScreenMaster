@@ -57,7 +57,7 @@ public partial class MainWindow : Window
             {
                 DesktopWallpaperService.Apply(monitor.Id, monitor.WallpaperPath);
             }
-            catch (Exception exception) when (exception is COMException or IOException or UnauthorizedAccessException
+            catch (Exception exception) when (exception is COMException or Win32Exception or IOException or UnauthorizedAccessException
                                              or ArgumentException or InvalidOperationException or NotSupportedException)
             {
                 errors.Add($"Unable to set wallpaper for {monitor.Name}: {exception.Message}");
@@ -130,7 +130,7 @@ public partial class MainWindow : Window
         {
             DesktopWallpaperService.Apply(monitor.Id, monitor.WallpaperPath);
         }
-        catch (Exception exception) when (exception is COMException or IOException or UnauthorizedAccessException
+        catch (Exception exception) when (exception is COMException or Win32Exception or IOException or UnauthorizedAccessException
                                          or ArgumentException or InvalidOperationException or NotSupportedException)
         {
             MessageBox.Show(this, $"Unable to set wallpaper for {monitor.Name}:\n{exception.Message}",
