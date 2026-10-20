@@ -13,12 +13,20 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,0,0,12">
-            <Button x:Name="RefreshInfoButton" Content="Refresh Info" Width="112" Padding="12,4" Margin="0,0,8,0"
-                    Click="RefreshInfo_Click" />
-            <Button x:Name="ApplySaveButton" Content="Apply&amp;Save" Width="112" Padding="12,4"
-                    Click="ApplySave_Click" />
-        </StackPanel>
+        <Grid Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                <Button x:Name="RefreshInfoButton" Content="Refresh Info" Width="112" Padding="12,4" Margin="0,0,8,0"
+                        Click="RefreshInfo_Click" />
+                <Button x:Name="ApplySaveButton" Content="Apply&amp;Save" Width="112" Padding="12,4"
+                        Click="ApplySave_Click" />
+            </StackPanel>
+            <TextBlock Grid.Column="1" Text="Restart graphics: Win+Ctrl+Shift+B" Foreground="#666666"
+                       VerticalAlignment="Center" HorizontalAlignment="Right" />
+        </Grid>
         <Border Grid.Row="1" BorderBrush="#D6D6D6" BorderThickness="1" CornerRadius="4">
             <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel>
