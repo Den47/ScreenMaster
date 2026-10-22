@@ -5,6 +5,10 @@ namespace ScreenMaster;
 
 internal static class DesktopWallpaperService
 {
+    private const string GraphicsRecoveryInstructions =
+        "Try restarting Windows graphics by pressing Win+Ctrl+Shift+B. " +
+        "Then click Refresh Info and try applying the wallpaper again.";
+
     public static void Apply(string monitorId, string imagePath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(monitorId);
@@ -20,10 +24,11 @@ internal static class DesktopWallpaperService
             throw new InvalidOperationException("This monitor is disconnected. Refresh the monitor list.");
         }
 
-        var type = Type.GetTypeFromCLSID(new Guid("C2CF3110-460E-4FC1-B9D0-8A1C0C9CC4BD"), true)!;
-        var desktop = (IDesktopWallpaper)Activator.CreateInstance(type)!;
+        IDesktopWallpaper? desktop = null;
         try
         {
+            var type = Type.GetTypeFromCLSID(new Guid("C2CF3110-460E-4FC1-B9D0-8A1C0C9CC4BD"), true)!;
+            desktop = (IDesktopWallpaper)Activator.CreateInstance(type)!;
             desktop.GetMonitorDevicePathCount(out var count);
             string? targetId = null;
             for (uint i = 0; i < count; i++)
@@ -38,7 +43,9 @@ internal static class DesktopWallpaperService
 
             if (targetId is null)
             {
-                throw new InvalidOperationException("This monitor is no longer available. Refresh the monitor list.");
+                throw new InvalidOperationException(
+                    "Windows detects this monitor, but its wallpaper service cannot identify it.\n\n" +
+                    GraphicsRecoveryInstructions);
             }
 
             desktop.GetPosition(out var previousPosition);
@@ -53,9 +60,18 @@ internal static class DesktopWallpaperService
                 throw;
             }
         }
+        catch (COMException exception) when (exception.HResult is unchecked((int)0x80004005) or unchecked((int)0x8000FFFF))
+        {
+            throw new InvalidOperationException(
+                "Windows could not apply the wallpaper.\n\n" +
+                GraphicsRecoveryInstructions, exception);
+        }
         finally
         {
-            Marshal.ReleaseComObject(desktop);
+            if (desktop is not null)
+            {
+                Marshal.ReleaseComObject(desktop);
+            }
         }
     }
 }

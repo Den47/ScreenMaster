@@ -60,7 +60,7 @@ public partial class MainWindow : Window
             catch (Exception exception) when (exception is COMException or Win32Exception or IOException or UnauthorizedAccessException
                                              or ArgumentException or InvalidOperationException or NotSupportedException)
             {
-                errors.Add($"Unable to set wallpaper for {monitor.Name}: {exception.Message}");
+                errors.Add($"Unable to set wallpaper for {monitor.Name}:\n{exception.Message}");
             }
         }
 
@@ -75,7 +75,7 @@ public partial class MainWindow : Window
 
         if (errors.Count > 0)
         {
-            MessageBox.Show(this, string.Join("\n", errors),
+            MessageBox.Show(this, string.Join("\n\n", errors),
                 "ScreenMaster", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
